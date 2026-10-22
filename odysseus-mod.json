@@ -1,0 +1,45 @@
+{
+  "manifest_version": 1,
+  "id": "chatgpt",
+  "name": "ChatGPT",
+  "version": "0.1.0",
+  "description": "Sign in with ChatGPT: use OpenAI models on your ChatGPT Plus or Pro plan, no API key needed.",
+  "author": "Jaron Wilson",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/Jaron-Wilson/odysseus-chatgpt",
+  "min_core": "0.1",
+  "tags": ["ai"],
+  "runtime": {
+    "type": "process",
+    "command": ["python", "-m", "chatgpt_mod"],
+    "setup": [["python3", "-m", "venv", ".venv"], [".venv/bin/pip", "install", "-q", "-r", "requirements.txt"]],
+    "health": "/health",
+    "start": "boot",
+    "idle_stop_minutes": 0
+  },
+  "permissions": [],
+  "provides": ["llm.provider"],
+  "llm_provider": {
+    "label": "ChatGPT",
+    "usage_provider": "chatgpt-plan",
+    "billing": "subscription",
+    "tool_cap": true
+  },
+  "ui": {
+    "tabs": [{ "id": "main", "title": "ChatGPT", "icon": "research", "path": "/", "section": "system" }]
+  },
+  "tutorial": {
+    "version": 1,
+    "steps": [
+      { "title": "Sign in with ChatGPT",
+        "body": "Press **Sign in with ChatGPT** on this tab and approve Odysseus in the ChatGPT tab that opens. Each Odysseus user signs in to their own ChatGPT account; nobody else can use it.",
+        "action": { "label": "Open the ChatGPT tab", "path": "/" } },
+      { "title": "When the sign-in tab does not load",
+        "body": "ChatGPT sends you back to `http://127.0.0.1:1455/auth/callback`, which only loads on the Odysseus server itself. That is expected: copy the whole address from that tab and paste it under **Finish sign-in**." },
+      { "title": "Use the models",
+        "body": "Your plan's models show in the model picker under **ChatGPT**, for chats, the agent and Company. Usage counts against your ChatGPT plan's limits, not an API bill; System > Usage counts it as a subscription." },
+      { "title": "Coming from the built-in sign-in",
+        "body": "Signed in before this was an add-on? Your ChatGPT endpoint and chats were kept. An admin moves the sign-ins over once with the command in this add-on's README (`python -m chatgpt_mod.migrate`), or you just sign in again here." }
+    ]
+  }
+}
