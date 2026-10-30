@@ -45,6 +45,33 @@ def test_tools_never_exceed_openais_limit():
     assert len(tr.build_payload({"model": "m", "messages": [], "tools": tools})["tools"]) == tr.MAX_TOOLS
 
 
+def test_reasoning_effort_is_sent_as_reasoning_effort():
+    for effort in ("none", "minimal", "low", "medium", "high", "xhigh", "max"):
+        p = tr.build_payload({"model": "gpt-5.5", "messages": [], "reasoning_effort": effort})
+        assert p["reasoning"] == {"effort": effort}
+        assert "reasoning_effort" not in p
+        assert p["store"] is False and p["stream"] is True
+
+
+def test_openai_style_reasoning_object_is_accepted():
+    p = tr.build_payload({"model": "m", "messages": [], "reasoning": {"effort": "high", "summary": "auto"}})
+    assert p["reasoning"] == {"effort": "high"}
+    # The flat field wins when both are valid.
+    p = tr.build_payload({"model": "m", "messages": [], "reasoning_effort": "low", "reasoning": {"effort": "high"}})
+    assert p["reasoning"] == {"effort": "low"}
+
+
+def test_unknown_or_missing_reasoning_effort_is_ignored():
+    for body in ({}, {"reasoning_effort": None}, {"reasoning_effort": "turbo"}, {"reasoning_effort": "HIGH"},
+                 {"reasoning_effort": 3}, {"reasoning": "high"}, {"reasoning": {"effort": "turbo"}},
+                 {"reasoning": {}}):
+        p = tr.build_payload({"model": "m", "messages": [], **body})
+        assert "reasoning" not in p, body
+    # An unknown flat value does not hide a valid one in the object.
+    p = tr.build_payload({"model": "m", "messages": [], "reasoning_effort": "turbo", "reasoning": {"effort": "max"}})
+    assert p["reasoning"] == {"effort": "max"}
+
+
 def _run(events):
     t = tr.ChunkTranslator("gpt-5.5")
     out = []

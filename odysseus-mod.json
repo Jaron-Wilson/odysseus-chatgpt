@@ -2,7 +2,7 @@
   "manifest_version": 1,
   "id": "chatgpt",
   "name": "ChatGPT",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sign in with ChatGPT: use OpenAI models on your ChatGPT Plus or Pro plan, no API key needed.",
   "author": "Jaron Wilson",
   "license": "AGPL-3.0",

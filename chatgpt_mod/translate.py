@@ -25,6 +25,11 @@ from chatgpt_mod.plan import friendly_error
 # this is the last guard.
 MAX_TOOLS = 128
 
+# Reasoning efforts the Responses API takes in ``reasoning.effort``. A value
+# outside this set is dropped; whether a given model takes it is left to the
+# server.
+REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
+
 
 def _text_of(content: Any) -> str:
     if isinstance(content, str):
@@ -122,12 +127,29 @@ def tools_to_responses(tools: Optional[List[Dict[str, Any]]]) -> List[Dict[str, 
     return out
 
 
+def reasoning_effort_of(body: Dict[str, Any]) -> Optional[str]:
+    """The request's reasoning effort, from ``reasoning_effort`` (Chat
+    Completions) or ``reasoning: {"effort": ...}`` (Responses style), if it is
+    a known one."""
+    candidates = [body.get("reasoning_effort")]
+    reasoning = body.get("reasoning")
+    if isinstance(reasoning, dict):
+        candidates.append(reasoning.get("effort"))
+    for value in candidates:
+        if isinstance(value, str) and value in REASONING_EFFORTS:
+            return value
+    return None
+
+
 def build_payload(body: Dict[str, Any]) -> Dict[str, Any]:
     """A Responses payload for a Chat Completions request body."""
     payload: Dict[str, Any] = {"model": body.get("model") or "", "input": messages_to_input(body.get("messages") or [])}
     mapped = tools_to_responses(body.get("tools"))[:MAX_TOOLS]
     if mapped:
         payload["tools"] = mapped
+    effort = reasoning_effort_of(body)
+    if effort:
+        payload["reasoning"] = {"effort": effort}
     # store/stream are required by ChatGPT plan usage; set last so nothing
     # above can override them. (Temperature and max tokens are not sent: the
     # plan's models take their own.)
