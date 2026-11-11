@@ -69,6 +69,38 @@ deleted. Anyone it could not move just signs in again on the tab.
   `chatgpt-plan`, `billing` `subscription`, `tool_cap`: Odysseus keeps a request under OpenAI's 128
   function tools). See `docs/mods.md` in Odysseus, "Models from a mod".
 
+## Run without Odysseus
+
+The ChatGPT add-on works on its own: sign in with ChatGPT once, then use the models from any program that speaks the OpenAI API. With no `ODYSSEUS_URL` in its environment the mod runs standalone: it asks for a password
+instead of trusting Odysseus's signed headers, keeps its settings and data in files under `MOD_DATA_DIR`,
+and writes notifications to its log.
+
+```bash
+git clone https://github.com/Jaron-Wilson/odysseus-chatgpt.git && cd odysseus-chatgpt
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+MOD_PASSWORD=pick-one .venv/bin/python -m chatgpt_mod      # then open http://127.0.0.1:8765/
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MOD_PASSWORD` | made up and printed at start | The sign-in password (one local user) |
+| `MOD_PORT` | `8765` | The port it listens on |
+| `MOD_HOST` | `127.0.0.1` | The address it listens on. It speaks plain HTTP: to reach it from another machine, put HTTPS in front (for example `tailscale serve`) rather than listening on `0.0.0.0` |
+| `MOD_DATA_DIR` | `./data` | Where its settings and data are kept |
+| `MOD_API_TOKEN` | unset | Standalone only: a token local programs send as `Authorization: Bearer <token>` to reach the model API (and nothing else). Unset, the model API needs the signed-in browser session |
+
+What works standalone:
+
+- The ChatGPT page: sign in (PKCE, or paste the redirect), refresh the models, sign out
+- The OpenAI-compatible model API at `http://127.0.0.1:8765/mod/cap/llm.provider/v1` (`models`, `chat/completions`, streaming), with `MOD_API_TOKEN`
+
+What needs Odysseus:
+
+- The models in Odysseus's model picker (`mod://chatgpt/v1`) and one sign-in per Odysseus user; standalone there is one user, `local`
+
+`tests/test_standalone.py` starts it this way, as its own process, and checks the sign-in, that
+forged Odysseus headers are ignored, and the pages.
+
 ## Develop
 
 ```
