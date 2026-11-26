@@ -10,12 +10,17 @@
 
 Run under Odysseus (it sets ODYSSEUS_URL), or standalone with
 ``python -m chatgpt_mod`` (asks for a password, one user: ``local``).
+Standalone, MOD_API_TOKEN also lets local programs call the model API
+with ``Authorization: Bearer <token>`` (never used under Odysseus).
 """
 from __future__ import annotations
 
+import hmac
 import html as _html
 import logging
+import os
 from typing import Optional
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -29,7 +34,24 @@ CAP = "/mod/cap/llm.provider/v1"
 CORE_USER = "odysseus-core"
 ENDPOINT_NAME = "ChatGPT"
 
-app = ModApp(mod_id=MOD_ID)
+
+
+class ChatGPTApp(ModApp):
+    """ModApp, plus one standalone-only way in: with MOD_API_TOKEN set and no Odysseus, a program on this
+    machine may call the model API (and only it) with that token as a bearer, as the local user."""
+
+    def _identity(self, handler) -> Optional[str]:
+        user = super()._identity(handler)
+        token = os.environ.get("MOD_API_TOKEN", "")
+        if user is not None or not self.core.standalone or not token:
+            return user
+        if not urlsplit(handler.path).path.startswith(CAP + "/"):
+            return None
+        sent = (handler.headers.get("Authorization") or "").encode()
+        return "local" if hmac.compare_digest(sent, b"Bearer " + token.encode()) else None
+
+
+app = ChatGPTApp(mod_id=MOD_ID)
 
 
 def _user(req) -> Optional[str]:
